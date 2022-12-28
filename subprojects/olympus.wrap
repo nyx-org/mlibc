@@ -1,0 +1,4 @@
+[wrap-git]
+directory = olympus
+url = https://github.com/nyx-org/olympus.git
+revision = master
