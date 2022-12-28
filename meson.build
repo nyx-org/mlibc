@@ -135,6 +135,12 @@ elif host_machine.system() == 'lyre'
 	rtdl_include_dirs += include_directories('sysdeps/lyre/include')
 	libc_include_dirs += include_directories('sysdeps/lyre/include')
 	subdir('sysdeps/lyre')
+elif host_machine.system() == 'nyx'
+	rtdl_include_dirs += include_directories('sysdeps/nyx/include')
+	libc_include_dirs += include_directories('sysdeps/nyx/include')
+	libc_deps += subproject('olympus').get_variable('protos_dep')
+	rtdl_deps += subproject('olympus').get_variable('protos_dep')
+	subdir('sysdeps/nyx')
 elif host_machine.system() == 'lemon'
 	rtdl_include_dirs += include_directories('sysdeps/lemon/include')
 	libc_include_dirs += include_directories('sysdeps/lemon/include')
