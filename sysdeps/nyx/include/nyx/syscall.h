@@ -1,5 +1,5 @@
-#ifndef _LYRE__SYSCALL_H
-#define _LYRE__SYSCALL_H
+#ifndef _NYX_SYSCALL_H
+#define _NYX_SYSCALL_H
 
 #include <stdint.h>
 
@@ -26,50 +26,64 @@ struct __syscall_ret {
   uint64_t errno;
 };
 
-#define __SYSCALL_EXPAND(...)                                                  \
-  struct __syscall_ret ret;                                                    \
-  asm volatile("mov %%rsp, %%r10\n\t"                                          \
-               "lea 1f(%%rip), %%r11\n\t"                                      \
-               "sysenter\n\t"                                                  \
-               "1:"                                                            \
-               : "=a"(ret.ret), "=b"(ret.errno)__VA_ARGS__ "r10", "r11",       \
-                 "memory");                                                    \
-  return ret
+static inline struct __syscall_ret __syscall0(int syscall) {
+  struct __syscall_ret ret;
 
-static inline struct __syscall_ret __syscall5(int number, uint64_t a,
-                                              uint64_t b, uint64_t c,
-                                              uint64_t d, uint64_t e) {
-  register uint64_t r8 asm("%r8") = d;
-  register uint64_t r9 asm("%r9") = e;
-  __SYSCALL_EXPAND(, "+d"(b), "+c"(c)
-                   : "D"(number), "S"(a), "r"(r8), "r"(r9)
-                   :);
+  __asm__ volatile("int $0x42"
+                   : "=b"(ret.errno), "=a"(ret.ret)
+                   : "a"(syscall)
+                   : "r10", "r11", "memory");
+  return ret;
+}
+
+static inline struct __syscall_ret __syscall1(int syscall, uint64_t param1) {
+  struct __syscall_ret ret;
+
+  __asm__ volatile("int $0x42"
+                   : "=b"(ret.errno), "=a"(ret.ret)
+                   : "a"(syscall), "D"(param1)
+                   : "r10", "r11", "memory");
+
+  return ret;
+}
+
+static inline struct __syscall_ret __syscall2(int syscall, uint64_t param1,
+                                              uint64_t param2) {
+  struct __syscall_ret ret;
+
+  __asm__ volatile("int $0x42"
+                   : "=b"(ret.errno), "=a"(ret.ret)
+                   : "a"(syscall), "D"(param1), "S"(param2)
+                   : "r10", "r11", "memory");
+
+  return ret;
 }
 
 static inline struct __syscall_ret
-__syscall4(int number, uint64_t a, uint64_t b, uint64_t c, uint64_t d) {
-  register uint64_t r8 asm("%r8") = d;
-  __SYSCALL_EXPAND(, "+d"(b), "+c"(c) : "D"(number), "S"(a), "r"(r8) :);
+__syscall3(int syscall, uint64_t param1, uint64_t param2, uint64_t param3) {
+  struct __syscall_ret ret;
+
+  __asm__ volatile("int $0x42"
+                   : "=b"(ret.errno), "=a"(ret.ret)
+                   : "a"(syscall), "D"(param1), "S"(param2), "d"(param3)
+                   : "r10", "r11", "memory");
+
+  return ret;
 }
 
-static inline struct __syscall_ret __syscall3(int number, uint64_t a,
-                                              uint64_t b, uint64_t c) {
-  __SYSCALL_EXPAND(, "+d"(b), "+c"(c) : "D"(number), "S"(a) :);
-}
+static inline struct __syscall_ret __syscall4(int syscall, uint64_t param1,
+                                              uint64_t param2, uint64_t param3,
+                                              uint64_t param4) {
+  struct __syscall_ret ret;
 
-static inline struct __syscall_ret __syscall2(int number, uint64_t a,
-                                              uint64_t b) {
-  __SYSCALL_EXPAND(, "+d"(b) : "D"(number), "S"(a) : "rcx", );
-}
+  __asm__ volatile("int $0x42"
+                   : "=b"(ret.errno), "=a"(ret.ret)
+                   : "a"(syscall), "D"(param1), "S"(param2), "d"(param3),
+                     "c"(param4)
+                   : "r10", "r11", "memory");
 
-static inline struct __syscall_ret __syscall1(int number, uint64_t a) {
-  __SYSCALL_EXPAND( : "D"(number), "S"(a) : "rcx", "rdx", );
+  return ret;
 }
-
-static inline struct __syscall_ret __syscall0(int number) {
-  __SYSCALL_EXPAND( : "D"(number) : "rcx", "rdx", );
-}
-
 #define __SYSCALL_NARGS_SEQ(_0, _1, _2, _3, _4, _5, _6, _7, N, ...) N
 #define __SYSCALL_NARGS(...)                                                   \
   __SYSCALL_NARGS_SEQ(__VA_ARGS__, 7, 6, 5, 4, 3, 2, 1, 0)

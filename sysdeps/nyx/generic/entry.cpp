@@ -1,12 +1,12 @@
 #include <bits/ensure.h>
 #include <bits/posix/posix_signal.h>
+#include <bootstrap.gen.hpp>
 #include <mlibc/all-sysdeps.hpp>
 #include <mlibc/debug.hpp>
 #include <mlibc/elf/startup.h>
 #include <nyx/syscall.h>
 #include <stdint.h>
 #include <stdlib.h>
-
 // defined by the POSIX library
 void __mlibc_initLocale();
 
@@ -106,15 +106,14 @@ static void __mlibc_sigentry(int which, siginfo_t *siginfo,
   __builtin_unreachable();
 }
 
+using namespace Bootstrap;
+
 thread_local int __mlibc_posix_port = 0;
-extern "C" int bootstrap_look_up(const char *name);
 int __mlibc_get_posix_port() {
   if (__mlibc_posix_port == 0)
     __mlibc_posix_port = bootstrap_look_up(("org.nyx.posix"));
   return __mlibc_posix_port;
 }
-
-extern "C" int bootstrap_look_up(const char *name);
 
 extern "C" void __mlibc_entry(int (*main_fn)(int argc, char *argv[],
                                              char *env[])) {

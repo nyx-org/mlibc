@@ -13,7 +13,10 @@
 #include <mlibc/allocator.hpp>
 #include <mlibc/debug.hpp>
 #include <nyx/syscall.h>
+#include <posix.gen.hpp>
 #include <stdlib.h>
+
+using namespace Posix;
 
 #define STRINGIFY_(X) #X
 #define STRINGIFY(X) STRINGIFY_(X)
@@ -45,18 +48,12 @@ int sys_tcb_set(void *pointer) {
   return 0;
 }
 
-extern "C" int posix_open(int port, int pid, const char *path, mode_t mode);
-extern "C" int posix_read(int port, int pid, int fd, void *buf, size_t count);
-extern "C" int posix_write(int port, int pid, int fd, void *buf, size_t count);
-extern "C" int posix_close(int port, int pid, int fd);
-extern "C" int posix_seek(int port, int pid, int fd, off_t offset, int whence);
-extern "C" int posix_mmap(int port, int32_t pid, int32_t fd, void *space,
-                          void *hint, int64_t size, int32_t prot, int32_t flags,
-                          int64_t offset, void *out, int64_t out_size);
-
 int sys_open(const char *path, int flags, mode_t mode, int *fd) {
   (void)flags;
   *fd = posix_open(__mlibc_get_posix_port(), sys_getpid(), path, mode);
+  if (*fd < 0)
+    return *fd;
+
   return 0;
 }
 
@@ -83,6 +80,8 @@ int sys_seek(int fd, off_t offset, int whence, off_t *new_offset) {
   return 0;
 }
 
+int sys_getpid(void) { return __syscall(SYS_GETPID).ret; }
+
 int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd,
                off_t offset, void **window) {
   struct [[gnu::packed]] {
@@ -90,6 +89,7 @@ int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd,
     size_t pid;
   } task;
   __syscall(SYS_GET_TASK, &task);
+
   return posix_mmap(__mlibc_get_posix_port(), sys_getpid(), fd, task.space,
                     hint, size, prot, flags, offset, (void *)window,
                     sizeof(void *));
@@ -98,6 +98,12 @@ int sys_vm_map(void *hint, size_t size, int prot, int flags, int fd,
 int sys_anon_allocate(size_t size, void **pointer) {
   return sys_vm_map(NULL, size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS, -1, 0,
                     pointer);
+}
+
+int sys_isatty(int fd) {
+  if (fd == 0 || fd == 1 || fd == 2)
+    return 0;
+  return ENOTTY;
 }
 
 int sys_vm_unmap(void *pointer, size_t size) {
